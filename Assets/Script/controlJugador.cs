@@ -1,17 +1,35 @@
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.InputSystem; // 1. Añadimos esta librería
+using UnityEngine.InputSystem;
 
 public class controlJugador : NetworkBehaviour
 {
     public float velocidad = 5f;
 
+    // Esta función de Netcode se ejecuta AUTOMÁTICAMENTE en cuanto el Servidor
+    // le asigna la autoridad de este objeto al Cliente correspondiente.
+    public override void OnGainedOwnership()
+    {
+        // Forzamos el encendido del script. Es infalible tras el reinicio de red.
+        this.enabled = true;
+        Debug.Log($"[Netcode] ¡Autoridad recibida! Movimiento activado para el jugador dueño.");
+    }
+
+    // Por seguridad, también lo encendemos si ya nace siendo el dueño
+    public override void OnNetworkSpawn()
+    {
+        if (IsOwner)
+        {
+            this.enabled = true;
+        }
+    }
+
     void Update()
     {
-        // REGLA: Si este no es MI jugador, ignoro el teclado
+        // Regla de oro: Si no es mi jugador, no leo su teclado
         if (!IsOwner) return;
 
-        // 2. Usamos el nuevo Input System para leer las flechas o WASD
+        // Tu código de movimiento actual...
         float moverH = 0f;
         float moverV = 0f;
 

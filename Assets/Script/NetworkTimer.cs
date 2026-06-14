@@ -1,17 +1,22 @@
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UI; // Necesario para controlar los botones
+using UnityEngine.SceneManagement; // Necesario para saber el nombre de la escena actual
 using TMPro;
 
 public class NetworkTimer : NetworkBehaviour
 {
     [Header("UI Config")]
     [SerializeField] private TextMeshProUGUI textoRelojUI;
+    [SerializeField] private TextMeshProUGUI textoGanadorUI;
+
+    [Header("Botones Finales")]
+    [SerializeField] private Button botonReiniciar;
+    [SerializeField] private Button botonSalir;
 
     [Header("Configuración del Tiempo")]
     [SerializeField] private float tiempoInicial = 60f;
 
-    // NetworkVariable para sincronizar el tiempo flotante. 
-    // Solo el servidor escribe, todos leen.
     private NetworkVariable<float> tiempoRestante = new NetworkVariable<float>();
     private bool juegoTerminado = false;
 
@@ -22,11 +27,17 @@ public class NetworkTimer : NetworkBehaviour
             tiempoRestante.Value = tiempoInicial;
         }
 
-        // Nos suscribimos al cambio de tiempo para actualizar la UI en todos lados
         tiempoRestante.OnValueChanged += ActualizarTextoReloj;
-
-        // Inicializar el texto al spawnear
         MostrarTiempoEnPantalla(tiempoRestante.Value);
+
+        // Asegurar que todo el menú final empiece oculto
+        if (textoGanadorUI != null) textoGanadorUI.gameObject.SetActive(false);
+        if (botonReiniciar != null) botonReiniciar.gameObject.SetActive(false);
+        if (botonSalir != null) botonSalir.gameObject.SetActive(false);
+
+        // Asignar funciones a los botones
+        if (botonReiniciar != null) botonReiniciar.onClick.AddListener(ReiniciarPartida);
+        if (botonSalir != null) botonSalir.onClick.AddListener(SalirDelJuego);
     }
 
     public override void OnNetworkDespawn()
@@ -36,12 +47,10 @@ public class NetworkTimer : NetworkBehaviour
 
     void Update()
     {
-        // REGLA: Solo el servidor resta el tiempo
         if (!IsServer || juegoTerminado) return;
 
         if (tiempoRestante.Value > 0)
         {
-            // Restamos el tiempo pasado en este frame
             tiempoRestante.Value -= Time.deltaTime;
 
             if (tiempoRestante.Value <= 0)
@@ -60,8 +69,6 @@ public class NetworkTimer : NetworkBehaviour
     private void MostrarTiempoEnPantalla(float tiempo)
     {
         if (textoRelojUI == null) return;
-
-        // Formateamos el tiempo para que muestre minutos y segundos (00:00)
         int minutos = Mathf.FloorToInt(tiempo / 60);
         int segundos = Mathf.FloorToInt(tiempo % 60);
         textoRelojUI.text = string.Format("{0:00}:{1:00}", minutos, segundos);
@@ -70,30 +77,115 @@ public class NetworkTimer : NetworkBehaviour
     private void TerminarJuego()
     {
         juegoTerminado = true;
-        Debug.Log("¡El tiempo se ha agotado! Fin de la partida.");
 
-        // Enviamos un RPC a todos los clientes para avisarles que el juego terminó
-        NotificarFinJuegoClientRpc();
+        string mensajeResultado = "¡Empate!";
+        int mayorPuntaje = -1;
+        ulong idGanador = 0;
+        bool hayEmpate = true;
+
+        PuntajeJugador[] todosLosJugadores = FindObjectsByType<PuntajeJugador>(FindObjectsSortMode.None);
+
+        foreach (PuntajeJugador jugador in todosLosJugadores)
+        {
+            int puntosActuales = jugador.monedasEnMeta.Value;
+
+            if (puntosActuales > mayorPuntaje)
+            {
+                mayorPuntaje = puntosActuales;
+                idGanador = jugador.OwnerClientId;
+                hayEmpate = false;
+            }
+            else if (puntosActuales == mayorPuntaje)
+            {
+                hayEmpate = true;
+            }
+        }
+
+        if (!hayEmpate && mayorPuntaje > 0)
+        {
+            mensajeResultado = idGanador == 0 ? "¡Ganó el Jugador 1 (Host)!" : $"¡Ganó el Jugador {idGanador + 1}!";
+        }
+        else if (mayorPuntaje == 0 && !hayEmpate)
+        {
+            mensajeResultado = "Nadie juntó monedas. ¡Empate!";
+        }
+
+        NotificarFinJuegoClientRpc(mensajeResultado);
     }
 
     [ClientRpc]
-    private void NotificarFinJuegoClientRpc()
+    private void NotificarFinJuegoClientRpc(string resultado)
     {
-        // Aquí pones lo que quieres que pase en las pantallas de todos cuando acabe el tiempo
         if (textoRelojUI != null)
         {
-            textoRelojUI.text = "¡FIN DEL JUEGO!";
-            textoRelojUI.color = Color.red;
+            textoRelojUI.text = "00:00";
+            textoRelojUI.color = Color.gray;
         }
 
-        // Bloquear el movimiento de los jugadores locales
-        var localPlayer = NetworkManager.Singleton.LocalClient?.PlayerObject?.GetComponent<controlJugador>();
-        if (localPlayer != null)
+        // Mostrar cartel de ganador y activar botones finales
+        if (textoGanadorUI != null)
         {
-            localPlayer.enabled = false; // Apagamos su script de movimiento
+            textoGanadorUI.gameObject.SetActive(true);
+            textoGanadorUI.text = resultado;
         }
 
-        // TODO: Aquí podrías activar un panel que compare los puntajes de PuntajeJugador 
-        // para ver quién juntó más monedas en la meta y declarar un ganador.
+        if (botonSalir != null) botonSalir.gameObject.SetActive(true);
+
+        // REGLA MULTIJUGADOR: Solo el Host puede ver/tocar el botón de reiniciar la escena de red
+        if (botonReiniciar != null)
+        {
+            botonReiniciar.gameObject.SetActive(true);
+            // Si eres un cliente (no eres el servidor/host), te desactivamos el botón para evitar errores
+            if (!IsServer)
+            {
+                botonReiniciar.interactable = false;
+                botonReiniciar.GetComponentInChildren<TextMeshProUGUI>().text = "Esperando al Host...";
+            }
+        }
+
+        // Bloquear los controles del jugador local
+        if (NetworkManager.Singleton.LocalClient != null && NetworkManager.Singleton.LocalClient.PlayerObject != null)
+        {
+            var localPlayer = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<controlJugador>();
+            if (localPlayer != null) localPlayer.enabled = false;
+        }
+    }
+
+    // --- LÓGICA DE LOS BOTONES ---
+
+    private void ReiniciarPartida()
+    {
+        if (!IsServer) return;
+
+        Debug.Log("Reiniciando partida en red...");
+
+        // Buscamos todos los jugadores existentes en el servidor y les reactivamos el script
+        controlJugador[] todosLosJugadores = FindObjectsByType<controlJugador>(FindObjectsSortMode.None);
+        foreach (controlJugador jugador in todosLosJugadores)
+        {
+            jugador.enabled = true;
+        }
+
+        // Cargamos la escena de forma síncrona para toda la red
+        string nombreEscenaActual = SceneManager.GetActiveScene().name;
+        NetworkManager.Singleton.SceneManager.LoadScene(nombreEscenaActual, LoadSceneMode.Single);
+    }
+
+    private void SalirDelJuego()
+    {
+        Debug.Log("Saliendo del juego...");
+
+        // 1. Desconectamos el NetworkManager limpiamente de la red
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+
+        // 2. Cerramos la aplicación
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false; // Si estamos en el editor, detiene el Play
+#else
+        Application.Quit(); // Si es el juego compilado, cierra la ventana (.exe)
+#endif
     }
 }

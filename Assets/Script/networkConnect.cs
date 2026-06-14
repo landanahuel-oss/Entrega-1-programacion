@@ -19,17 +19,24 @@ public class networkConnect : MonoBehaviour
 
     void Start()
     {
+        // --- NUEVA VALIDACIÓN DE SEGURIDAD MULTIJUGADOR ---
+        // Si la escena se recargó pero el NetworkManager YA ESTABA activo (Host o Cliente)...
+        if (NetworkManager.Singleton != null && (NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsClient))
+        {
+            Debug.Log("La red ya estaba activa tras el reinicio. Saltando menú...");
+            TransicionAlJuego(); // Apaga el menú y enciende el HUD directamente
+            return; // Nos salimos para que no se ejecuten los listeners repetidos ni tire errores
+        }
+        // --------------------------------------------------
+
         if (panelMenu != null) panelMenu.SetActive(true);
         if (panelJuego != null) panelJuego.SetActive(false);
 
-        // CONFIGURACIÓN DEL HOST
         botonHost.onClick.AddListener(() => {
-            // El Host siempre levanta el servidor localmente
             NetworkManager.Singleton.StartHost();
             TransicionAlJuego();
         });
 
-        // CONFIGURACIÓN DEL CLIENTE
         botonClient.onClick.AddListener(() => {
             ConfigurarConexionCliente();
         });
