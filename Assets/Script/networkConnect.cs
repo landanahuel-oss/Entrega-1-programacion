@@ -1,6 +1,8 @@
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP; // 1. IMPORTANTE: Añadir esta librería para controlar el transporte
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro; // Librería para manejar el InputField de TextMeshPro
 
 public class networkConnect : MonoBehaviour
 {
@@ -8,34 +10,64 @@ public class networkConnect : MonoBehaviour
     [SerializeField] private Button botonHost;
     [SerializeField] private Button botonClient;
 
+    [Header("Entrada de Datos")]
+    [SerializeField] private TMP_InputField inputFieldIP; // El campo para la IP
+
     [Header("Paneles de la UI")]
-    // Cambiamos el Canvas completo por los paneles específicos
     [SerializeField] private GameObject panelMenu;
     [SerializeField] private GameObject panelJuego;
 
     void Start()
     {
-        // Al inicio, nos aseguramos de que el menú se vea y el juego esté oculto (opcional)
         if (panelMenu != null) panelMenu.SetActive(true);
         if (panelJuego != null) panelJuego.SetActive(false);
 
+        // CONFIGURACIÓN DEL HOST
         botonHost.onClick.AddListener(() => {
+            // El Host siempre levanta el servidor localmente
             NetworkManager.Singleton.StartHost();
             TransicionAlJuego();
         });
 
+        // CONFIGURACIÓN DEL CLIENTE
         botonClient.onClick.AddListener(() => {
+            ConfigurarConexionCliente();
+        });
+    }
+
+    void ConfigurarConexionCliente()
+    {
+        // Obtenemos el texto que escribió el usuario
+        string ipIngresada = inputFieldIP.text.Trim();
+
+        // Si el usuario no escribió nada, usamos 'localhost' por defecto para pruebas
+        if (string.IsNullOrEmpty(ipIngresada))
+        {
+            ipIngresada = "127.0.0.1";
+        }
+
+        // Accedemos al componente UnityTransport asignado al NetworkManager
+        UnityTransport transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+
+        if (transport != null)
+        {
+            // Le cambiamos la IP de conexión en tiempo real antes de conectar
+            transport.ConnectionData.Address = ipIngresada;
+            Debug.Log($"Intentando conectar a la IP: {ipIngresada}");
+
+            // Iniciamos el cliente con la nueva dirección
             NetworkManager.Singleton.StartClient();
             TransicionAlJuego();
-        });
+        }
+        else
+        {
+            Debug.LogError("No se encontró el componente UnityTransport en el NetworkManager.");
+        }
     }
 
     void TransicionAlJuego()
     {
-        // Apagamos SOLO los botones del menú de inicio
         if (panelMenu != null) panelMenu.SetActive(false);
-
-        // Encendemos el reloj y elementos del juego
         if (panelJuego != null) panelJuego.SetActive(true);
     }
 }
