@@ -6,30 +6,17 @@ public class controlJugador : NetworkBehaviour
 {
     public float velocidad = 5f;
 
-    // Esta función de Netcode se ejecuta AUTOMÁTICAMENTE en cuanto el Servidor
-    // le asigna la autoridad de este objeto al Cliente correspondiente.
-    public override void OnGainedOwnership()
+    // Dejamos que Unity maneje el script de forma normal al nacer
+    void Start()
     {
-        // Forzamos el encendido del script. Es infalible tras el reinicio de red.
-        this.enabled = true;
-        Debug.Log($"[Netcode] ¡Autoridad recibida! Movimiento activado para el jugador dueño.");
-    }
-
-    // Por seguridad, también lo encendemos si ya nace siendo el dueño
-    public override void OnNetworkSpawn()
-    {
-        if (IsOwner)
-        {
-            this.enabled = true;
-        }
+        // Limpio: Sin bloqueos ni modificaciones de componentes
     }
 
     void Update()
     {
-        // Regla de oro: Si no es mi jugador, no leo su teclado
+        // REGLA DE ORO: Si este objeto no me pertenece, ignoro el teclado
         if (!IsOwner) return;
 
-        // Tu código de movimiento actual...
         float moverH = 0f;
         float moverV = 0f;
 

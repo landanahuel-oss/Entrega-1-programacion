@@ -122,7 +122,6 @@ public class NetworkTimer : NetworkBehaviour
             textoRelojUI.color = Color.gray;
         }
 
-        // Mostrar cartel de ganador y activar botones finales
         if (textoGanadorUI != null)
         {
             textoGanadorUI.gameObject.SetActive(true);
@@ -131,11 +130,9 @@ public class NetworkTimer : NetworkBehaviour
 
         if (botonSalir != null) botonSalir.gameObject.SetActive(true);
 
-        // REGLA MULTIJUGADOR: Solo el Host puede ver/tocar el botón de reiniciar la escena de red
         if (botonReiniciar != null)
         {
             botonReiniciar.gameObject.SetActive(true);
-            // Si eres un cliente (no eres el servidor/host), te desactivamos el botón para evitar errores
             if (!IsServer)
             {
                 botonReiniciar.interactable = false;
@@ -143,12 +140,10 @@ public class NetworkTimer : NetworkBehaviour
             }
         }
 
-        // Bloquear los controles del jugador local
-        if (NetworkManager.Singleton.LocalClient != null && NetworkManager.Singleton.LocalClient.PlayerObject != null)
-        {
-            var localPlayer = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<controlJugador>();
-            if (localPlayer != null) localPlayer.enabled = false;
-        }
+        // =================================================================
+        // ELIMINADO: Ya no apagamos el ControlJugador aquí. 
+        // Los jugadores se moverán libremente en el Game Over.
+        // =================================================================
     }
 
     // --- LÓGICA DE LOS BOTONES ---
