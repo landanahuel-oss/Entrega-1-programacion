@@ -8,35 +8,34 @@ public class networkConnect : MonoBehaviour
     [SerializeField] private Button botonHost;
     [SerializeField] private Button botonClient;
 
-    [Header("UI a Desactivar")]
-    // Aquí arrastraremos el GameObject del Canvas completo
-    [SerializeField] private GameObject canvasMenu;
+    [Header("Paneles de la UI")]
+    // Cambiamos el Canvas completo por los paneles específicos
+    [SerializeField] private GameObject panelMenu;
+    [SerializeField] private GameObject panelJuego;
 
     void Start()
     {
-        // Al presionar Host, inicia la red y apaga el menú
+        // Al inicio, nos aseguramos de que el menú se vea y el juego esté oculto (opcional)
+        if (panelMenu != null) panelMenu.SetActive(true);
+        if (panelJuego != null) panelJuego.SetActive(false);
+
         botonHost.onClick.AddListener(() => {
             NetworkManager.Singleton.StartHost();
-            ApagarMenu();
+            TransicionAlJuego();
         });
 
-        // Al presionar Cliente, se une y apaga el menú
         botonClient.onClick.AddListener(() => {
             NetworkManager.Singleton.StartClient();
-            ApagarMenu();
+            TransicionAlJuego();
         });
     }
 
-    void ApagarMenu()
+    void TransicionAlJuego()
     {
-        if (canvasMenu != null)
-        {
-            canvasMenu.SetActive(false); // Apaga el Canvas por completo
-        }
-        else
-        {
-            // Failsafe: Si olvidaste asignar el Canvas, al menos apaga este objeto
-            gameObject.SetActive(false);
-        }
+        // Apagamos SOLO los botones del menú de inicio
+        if (panelMenu != null) panelMenu.SetActive(false);
+
+        // Encendemos el reloj y elementos del juego
+        if (panelJuego != null) panelJuego.SetActive(true);
     }
 }

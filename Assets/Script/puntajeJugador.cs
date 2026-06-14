@@ -1,70 +1,78 @@
 using Unity.Netcode;
 using UnityEngine;
-using TMPro; // 1. Importamos la librería de texto
+using TMPro;
 
-public class puntajeJugador : NetworkBehaviour
+public class PuntajeJugador : NetworkBehaviour
 {
     [Header("UI Config")]
-    [SerializeField] private GameObject TextoPuntajePrefab; // El prefab del texto que creamos
-    private TextMeshProUGUI textoPuntajeInstancia; // La copia del texto en nuestra pantalla
+    [SerializeField] private GameObject textoPuntajePrefab;
+    private TextMeshProUGUI textoPuntajeInstancia;
 
-    // Nuestra variable de red para las monedas
-    public NetworkVariable<int> monedasRecolectadas = new NetworkVariable<int>(
-        0,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+    // Monedas aseguradas en la meta (Sincronizadas)
+    public NetworkVariable<int> monedasEnMeta = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    // Se ejecuta automáticamente cuando el objeto aparece en la red
+    // Monedas que carga el jugador en este momento (No requiere NetworkVariable si solo la maneja el servidor y el dueño)
+    private int monedasCargadas = 0;
+
+    // Punto de anclaje visual para que las monedas floten sobre el jugador (Opcional)
+    [Header("Referencias")]
+    public Transform puntoMonedasCargadas;
+
     public override void OnNetworkSpawn()
     {
-        // REGLA: Solo creamos el marcador en pantalla si ESTE es MI jugador
         if (IsOwner)
         {
-            // Buscamos el Canvas de la escena para meter el texto dentro
             Canvas canvas = FindFirstObjectByType<Canvas>();
             if (canvas != null)
             {
-                // Clonamos el prefab del texto dentro del Canvas
-                GameObject go = Instantiate(TextoPuntajePrefab, canvas.transform);
+                GameObject go = Instantiate(textoPuntajePrefab, canvas.transform);
                 textoPuntajeInstancia = go.GetComponent<TextMeshProUGUI>();
 
-                // Si el jugador 2 se conecta más tarde, le ponemos una posición diferente para que no se encimen
                 if (OwnerClientId != 0)
                 {
-                    textoPuntajeInstancia.rectTransform.anchoredPosition += new Vector2(0, -50 * (float) OwnerClientId);
+                    textoPuntajeInstancia.rectTransform.anchoredPosition += new Vector2(0, -50f * (float)OwnerClientId);
                 }
 
-                // Inicializamos el texto
-                ActualizarTextoUI(0, monedasRecolectadas.Value);
+                ActualizarTextoUI(0, monedasEnMeta.Value);
             }
         }
-
-        // Nos suscribimos al evento: "Cuando cambie el valor de las monedas, ejecuta ActualizarTextoUI"
-        monedasRecolectadas.OnValueChanged += ActualizarTextoUI;
+        monedasEnMeta.OnValueChanged += ActualizarTextoUI;
     }
 
-    // Se ejecuta al desconectarse (limpieza de memoria)
     public override void OnNetworkDespawn()
     {
-        monedasRecolectadas.OnValueChanged -= ActualizarTextoUI;
+        monedasEnMeta.OnValueChanged -= ActualizarTextoUI;
         if (textoPuntajeInstancia != null) Destroy(textoPuntajeInstancia.gameObject);
     }
 
-    // Esta función se activa automáticamente gracias a Netcode cuando cambia el valor
     private void ActualizarTextoUI(int valorAntiguo, int valorNuevo)
     {
-        // Solo actualizamos la UI si somos el dueño de este script/jugador
         if (IsOwner && textoPuntajeInstancia != null)
         {
-            textoPuntajeInstancia.text = $"Mis Monedas: {valorNuevo}";
+            textoPuntajeInstancia.text = $"Meta: {valorNuevo} | Cargando: {monedasCargadas}";
         }
     }
 
-    // Esta función SOLAMENTE la llama el Servidor (la moneda al colisionar)
-    public void SumarMoneda()
+    // --- NUEVAS FUNCIONES DE LÓGICA ---
+
+    public void RecogerMonedaParaLlevar()
+    {
+        monedasCargadas++;
+        if (IsOwner) ActualizarTextoUI(0, monedasEnMeta.Value); // Actualiza la UI local del cliente
+    }
+
+    public int EntregarMonedas()
+    {
+        int cantidadAEntregar = monedasCargadas;
+        monedasCargadas = 0; // Se vacían los bolsillos
+        if (IsOwner) ActualizarTextoUI(0, monedasEnMeta.Value);
+        return cantidadAEntregar; // Le dice a la meta cuántas monedas traía
+    }
+
+    // Esto lo llamará el servidor desde la Meta
+    public void AsegurarMonedas(int cantidad)
     {
         if (!IsServer) return;
-        monedasRecolectadas.Value += 1;
+        monedasEnMeta.Value += cantidad;
     }
 }

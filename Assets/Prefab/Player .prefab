@@ -199,12 +199,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::puntajeJugador
   ShowTopMostFoldoutHeaderGroup: 1
-  TextoPuntajePrefab: {fileID: 1505834328388012720, guid: e24f7dda1c388364ab6472d573922ee3, type: 3}
-  monedasRecolectadas:
+  textoPuntajePrefab: {fileID: 1505834328388012720, guid: e24f7dda1c388364ab6472d573922ee3, type: 3}
+  monedasEnMeta:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
+  puntoMonedasCargadas: {fileID: 0}
 --- !u!114 &-2601351944343115429
 MonoBehaviour:
   m_ObjectHideFlags: 0
