@@ -4,10 +4,10 @@ using UnityEngine;
 public class playerColor : NetworkBehaviour
 {
     [Header("Paleta de Colores")]
-    [SerializeField] private Color colorParaHost = Color.blue;   // Color que usará el ID 0
-    [SerializeField] private Color colorParaCliente = Color.red; // Color que usará el ID 1
+    [SerializeField] private Color colorParaHost = Color.blue;   
+    [SerializeField] private Color colorParaCliente = Color.red; 
 
-    [SerializeField] private MeshRenderer meshRenderer; // Referencia al componente visual del player
+    [SerializeField] private MeshRenderer meshRenderer; 
 
     private readonly NetworkVariable<Color> netColor = new NetworkVariable<Color>(
         Color.white,
@@ -18,12 +18,12 @@ public class playerColor : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        netColor.OnValueChanged += OnColorChanged;        // Suscribimos el evento para enterarnos cuando el color cambie en la red
+        netColor.OnValueChanged += OnColorChanged;        
 
 
         if (IsServer)
         {
-            if (OwnerClientId == 0)            // Evaluamos el ID real del dueño de este personaje
+            if (OwnerClientId == 0)          
 
             {
                 netColor.Value = colorParaHost;
@@ -34,13 +34,13 @@ public class playerColor : NetworkBehaviour
             }
         }
 
-        ApplyColor(netColor.Value);        // Aplicamos el color inicial que ya tenga la variable de red
+        ApplyColor(netColor.Value);        
 
     }
 
     public override void OnNetworkDespawn()
     {
-        netColor.OnValueChanged -= OnColorChanged;        // Buena práctica: desvincularse al destruir el personaje
+        netColor.OnValueChanged -= OnColorChanged;        
 
     }
 
@@ -53,7 +53,7 @@ public class playerColor : NetworkBehaviour
     {
         if (meshRenderer != null)
         {
-            meshRenderer.material.color = color;            // Accedemos al material del objeto y cambiamos su color base por el color de red
+            meshRenderer.material.color = color;            
 
         }
     }

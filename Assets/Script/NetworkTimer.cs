@@ -1,7 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UI; // Necesario para controlar los botones
-using UnityEngine.SceneManagement; // Necesario para saber el nombre de la escena actual
+using UnityEngine.UI; 
+using UnityEngine.SceneManagement; 
 using TMPro;
 
 public class NetworkTimer : NetworkBehaviour
@@ -30,12 +30,12 @@ public class NetworkTimer : NetworkBehaviour
         tiempoRestante.OnValueChanged += ActualizarTextoReloj;
         MostrarTiempoEnPantalla(tiempoRestante.Value);
 
-        // Asegurar que todo el menú final empiece oculto
+        
         if (textoGanadorUI != null) textoGanadorUI.gameObject.SetActive(false);
         if (botonReiniciar != null) botonReiniciar.gameObject.SetActive(false);
         if (botonSalir != null) botonSalir.gameObject.SetActive(false);
 
-        // Asignar funciones a los botones
+        
         if (botonReiniciar != null) botonReiniciar.onClick.AddListener(ReiniciarPartida);
         if (botonSalir != null) botonSalir.onClick.AddListener(SalirDelJuego);
     }
@@ -140,13 +140,10 @@ public class NetworkTimer : NetworkBehaviour
             }
         }
 
-        // =================================================================
-        // ELIMINADO: Ya no apagamos el ControlJugador aquí. 
-        // Los jugadores se moverán libremente en el Game Over.
-        // =================================================================
+       
     }
 
-    // --- LÓGICA DE LOS BOTONES ---
+    
 
     private void ReiniciarPartida()
     {
@@ -154,14 +151,14 @@ public class NetworkTimer : NetworkBehaviour
 
         Debug.Log("Reiniciando partida en red...");
 
-        // Buscamos todos los jugadores existentes en el servidor y les reactivamos el script
+        
         controlJugador[] todosLosJugadores = FindObjectsByType<controlJugador>(FindObjectsSortMode.None);
         foreach (controlJugador jugador in todosLosJugadores)
         {
             jugador.enabled = true;
         }
 
-        // Cargamos la escena de forma síncrona para toda la red
+        
         string nombreEscenaActual = SceneManager.GetActiveScene().name;
         NetworkManager.Singleton.SceneManager.LoadScene(nombreEscenaActual, LoadSceneMode.Single);
     }
@@ -170,15 +167,15 @@ public class NetworkTimer : NetworkBehaviour
     {
         Debug.Log("Saliendo del juego...");
 
-        // 1. Desconectamos el NetworkManager limpiamente de la red
+        
         if (NetworkManager.Singleton != null)
         {
             NetworkManager.Singleton.Shutdown();
         }
 
-        // 2. Cerramos la aplicación
+        
 #if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false; // Si estamos en el editor, detiene el Play
+        UnityEditor.EditorApplication.isPlaying = false; 
 #else
         Application.Quit(); // Si es el juego compilado, cierra la ventana (.exe)
 #endif

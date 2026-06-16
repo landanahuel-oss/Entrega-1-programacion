@@ -8,13 +8,13 @@ public class PuntajeJugador : NetworkBehaviour
     [SerializeField] private GameObject textoPuntajePrefab;
     private TextMeshProUGUI textoPuntajeInstancia;
 
-    // Monedas aseguradas en la meta (Sincronizadas)
+   
     public NetworkVariable<int> monedasEnMeta = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    // Monedas que carga el jugador en este momento (No requiere NetworkVariable si solo la maneja el servidor y el dueño)
+   
     private int monedasCargadas = 0;
 
-    // Punto de anclaje visual para que las monedas floten sobre el jugador (Opcional)
+   
     [Header("Referencias")]
     public Transform puntoMonedasCargadas;
 
@@ -53,23 +53,23 @@ public class PuntajeJugador : NetworkBehaviour
         }
     }
 
-    // --- NUEVAS FUNCIONES DE LÓGICA ---
+   
 
     public void RecogerMonedaParaLlevar()
     {
         monedasCargadas++;
-        if (IsOwner) ActualizarTextoUI(0, monedasEnMeta.Value); // Actualiza la UI local del cliente
+        if (IsOwner) ActualizarTextoUI(0, monedasEnMeta.Value); 
     }
 
     public int EntregarMonedas()
     {
         int cantidadAEntregar = monedasCargadas;
-        monedasCargadas = 0; // Se vacían los bolsillos
+        monedasCargadas = 0; 
         if (IsOwner) ActualizarTextoUI(0, monedasEnMeta.Value);
-        return cantidadAEntregar; // Le dice a la meta cuántas monedas traía
+        return cantidadAEntregar; 
     }
 
-    // Esto lo llamará el servidor desde la Meta
+    
     public void AsegurarMonedas(int cantidad)
     {
         if (!IsServer) return;

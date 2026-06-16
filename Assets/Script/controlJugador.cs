@@ -6,15 +6,15 @@ public class controlJugador : NetworkBehaviour
 {
     public float velocidad = 5f;
 
-    // Dejamos que Unity maneje el script de forma normal al nacer
+    
     void Start()
     {
-        // Limpio: Sin bloqueos ni modificaciones de componentes
+        
     }
 
     void Update()
     {
-        // REGLA DE ORO: Si este objeto no me pertenece, ignoro el teclado
+        
         if (!IsOwner) return;
 
         float moverH = 0f;
